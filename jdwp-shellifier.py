@@ -14,7 +14,7 @@ import sys
 import struct
 import urllib
 import argparse
-
+import traceback
 
 
 ################################################################################
@@ -354,6 +354,20 @@ class JDWPClient:
         buf = self.read_reply()
         return buf
 
+    def invokeVoid(self, objId, threadId, classId, methId, *args):
+        data = self.format(self.objectIDSize, objId)
+        data+= self.format(self.objectIDSize, threadId)
+        data+= self.format(self.referenceTypeIDSize, classId)
+        data+= self.format(self.methodIDSize, methId)
+        data+= struct.pack(">I", len(args))
+        for arg in args:
+            data+= arg
+        data+= struct.pack(">I", 0)
+
+        self.socket.sendall( self.create_packet(INVOKEMETHOD_SIG, data=data) )
+        buf = None
+        return buf
+
     def solve_string(self, objId):
         self.socket.sendall( self.create_packet(STRINGVALUE_SIG, data=objId) )
         buf = self.read_reply()
@@ -646,6 +660,7 @@ if __name__ == "__main__":
 
     except Exception as e:
         print ("[-] Exception: %s" % e)
+        traceback.print_exc()
         retcode = 1
         cli = None
 
